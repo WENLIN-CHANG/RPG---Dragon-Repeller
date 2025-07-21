@@ -250,22 +250,63 @@ function goFight(){
   monsterHealthText.innerText = monsterHealth;
 }
 
-function attack() {
-  text.innerText = "You attack the " + monsters[fighting].name + " with your " + weapon[currentWeaponIndex].name + ".";
+// Combat Helper Functions
+function executePlayerAttack() {
+  const attackResult = calculatePlayerDamage();
   
-  if (isMonsterHit()) {
-    const baseDamage = weapon[currentWeaponIndex].power;
-    const bonusDamage = Math.floor(Math.random() * xp) + 1;
-    const totalDamage = baseDamage + bonusDamage;
-    monsterHealth -= totalDamage;
-    text.innerText += ` You deal ${totalDamage} damage! (${baseDamage} + ${bonusDamage} bonus)`;
+  if (attackResult.hit) {
+    monsterHealth -= attackResult.totalDamage;
+    text.innerText += ` You deal ${attackResult.totalDamage} damage! (${attackResult.baseDamage} + ${attackResult.bonusDamage} bonus)`;
   } else {
     text.innerText += " You miss.";
   }
   
   monsterHealthText.innerText = Math.max(0, monsterHealth);
+  return monsterHealth <= 0;
+}
+
+function calculatePlayerDamage() {
+  if (!isMonsterHit()) {
+    return { hit: false, totalDamage: 0 };
+  }
   
-  if (monsterHealth <= 0) {
+  const baseDamage = weapon[currentWeaponIndex].power;
+  const bonusDamage = Math.floor(Math.random() * xp) + 1;
+  const totalDamage = baseDamage + bonusDamage;
+  
+  return { hit: true, totalDamage, baseDamage, bonusDamage };
+}
+
+function executeMonsterCounterAttack() {
+  const monsterDamage = getMonsterAttackValue(monsters[fighting].level);
+  text.innerText += ` The ${monsters[fighting].name} attacks you for ${monsterDamage} damage.`;
+  
+  takeDamage(monsterDamage);
+  healthText.innerText = health;
+  
+  return health <= 0;
+}
+
+function checkWeaponDurability() {
+  if (Math.random() <= GAME_CONSTANTS.WEAPON_BREAK_CHANCE && inventory.length !== 1 && currentWeaponIndex < inventory.length) {
+    let brokenWeapon = inventory[currentWeaponIndex];
+    text.innerText += " Your " + brokenWeapon + " breaks.";
+    inventory.splice(currentWeaponIndex, 1);
+    currentWeaponIndex = Math.min(currentWeaponIndex, inventory.length - 1);
+    currentWeaponIndex = Math.max(0, currentWeaponIndex);
+    saveGame();
+    return true;
+  }
+  return false;
+}
+
+function attack() {
+  text.innerText = "You attack the " + monsters[fighting].name + " with your " + weapon[currentWeaponIndex].name + ".";
+  
+  // Execute player attack
+  const monsterDefeated = executePlayerAttack();
+  
+  if (monsterDefeated) {
     if (fighting === 2) {
       winGame();
     } else {
@@ -274,25 +315,16 @@ function attack() {
     return;
   }
   
-  const monsterDamage = getMonsterAttackValue(monsters[fighting].level);
-  text.innerText += ` The ${monsters[fighting].name} attacks you for ${monsterDamage} damage.`;
-  health -= monsterDamage;
-  health = Math.max(0, health);
-  healthText.innerText = health;
+  // Monster counter-attack
+  const playerDefeated = executeMonsterCounterAttack();
   
-  if (health <= 0) {
+  if (playerDefeated) {
     lose();
     return;
   }
   
-  if (Math.random() <= GAME_CONSTANTS.WEAPON_BREAK_CHANCE && inventory.length !== 1 && currentWeaponIndex < inventory.length) {
-    let brokenWeapon = inventory[currentWeaponIndex];
-    text.innerText += " Your " + brokenWeapon + " breaks.";
-    inventory.splice(currentWeaponIndex, 1);
-    currentWeaponIndex = Math.min(currentWeaponIndex, inventory.length - 1);
-    currentWeaponIndex = Math.max(0, currentWeaponIndex);
-    saveGame();
-  }
+  // Check weapon durability
+  checkWeaponDurability();
 }
 
 function getMonsterAttackValue(level) {
