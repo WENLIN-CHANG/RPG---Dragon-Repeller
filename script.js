@@ -1,6 +1,56 @@
-let xp = 0;
-let health = 100;
-let gold = 50;
+// Game Constants
+const GAME_CONSTANTS = {
+  MAX_HEALTH: 200,
+  MAX_GOLD: 9999,
+  MAX_XP: 999,
+  INITIAL_HEALTH: 100,
+  INITIAL_GOLD: 50,
+  INITIAL_XP: 0,
+  HEALTH_COST: 10,
+  HEALTH_GAIN: 10,
+  WEAPON_COST: 30,
+  WEAPON_SELL_PRICE: 15,
+  EASTER_EGG_GOLD_REWARD: 20,
+  EASTER_EGG_HEALTH_PENALTY: 10,
+  WEAPON_BREAK_CHANCE: 0.1,
+  HIT_CHANCE: 0.8,
+  DODGE_SUCCESS_RATE: 0.5
+};
+
+// Utility Functions
+function clampValue(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function updatePlayerStats() {
+  goldText.innerText = gold;
+  healthText.innerText = health;
+  xpText.innerText = xp;
+}
+
+function showMessage(message) {
+  text.innerText = message;
+}
+
+function addGold(amount) {
+  gold += amount;
+  gold = Math.min(gold, GAME_CONSTANTS.MAX_GOLD);
+}
+
+function addXP(amount) {
+  xp += amount;
+  xp = Math.min(xp, GAME_CONSTANTS.MAX_XP);
+}
+
+function takeDamage(amount) {
+  health -= amount;
+  health = Math.max(0, health);
+}
+
+// Game State Variables
+let xp = GAME_CONSTANTS.INITIAL_XP;
+let health = GAME_CONSTANTS.INITIAL_HEALTH;
+let gold = GAME_CONSTANTS.INITIAL_GOLD;
 let currentWeaponIndex = 0;
 let fighting;
 let monsterHealth;
@@ -124,13 +174,12 @@ function goCave() {
 }
 
 function buyHealth() {
-  const MAX_HEALTH = 200;
-  if(gold >= 10){
-    if(health >= MAX_HEALTH){
+  if(gold >= GAME_CONSTANTS.HEALTH_COST){
+    if(health >= GAME_CONSTANTS.MAX_HEALTH){
       text.innerText = "You already have maximum health!";
     }else{
-      gold -= 10;
-      health = Math.min(health + 10, MAX_HEALTH);
+      gold -= GAME_CONSTANTS.HEALTH_COST;
+      health = Math.min(health + GAME_CONSTANTS.HEALTH_GAIN, GAME_CONSTANTS.MAX_HEALTH);
       goldText.innerText = gold;
       healthText.innerText = health;
       saveGame();
@@ -142,8 +191,8 @@ function buyHealth() {
 
 function buyWeapon() {
   if (currentWeaponIndex < weapon.length - 1) {
-    if (gold >= 30) {
-      gold -= 30;
+    if (gold >= GAME_CONSTANTS.WEAPON_COST) {
+      gold -= GAME_CONSTANTS.WEAPON_COST;
       currentWeaponIndex++;
       currentWeaponIndex = Math.min(currentWeaponIndex, weapon.length - 1);
       goldText.innerText = gold;
@@ -164,9 +213,8 @@ function buyWeapon() {
 
 function sellWeapon() {
   if (inventory.length > 1) {
-    const MAX_GOLD = 9999;
-    gold += 15;
-    gold = Math.min(gold, MAX_GOLD);
+    gold += GAME_CONSTANTS.WEAPON_SELL_PRICE;
+    gold = Math.min(gold, GAME_CONSTANTS.MAX_GOLD);
     goldText.innerText = gold;
     currentWeaponIndex--;
     currentWeaponIndex = Math.max(0, currentWeaponIndex);
@@ -237,7 +285,7 @@ function attack() {
     return;
   }
   
-  if (Math.random() <= .1 && inventory.length !== 1 && currentWeaponIndex < inventory.length) {
+  if (Math.random() <= GAME_CONSTANTS.WEAPON_BREAK_CHANCE && inventory.length !== 1 && currentWeaponIndex < inventory.length) {
     let brokenWeapon = inventory[currentWeaponIndex];
     text.innerText += " Your " + brokenWeapon + " breaks.";
     inventory.splice(currentWeaponIndex, 1);
@@ -253,13 +301,13 @@ function getMonsterAttackValue(level) {
 }
 
 function isMonsterHit() {
-  return Math.random() > .2;
+  return Math.random() > (1 - GAME_CONSTANTS.HIT_CHANCE);
 }
 
 function dodge() {
   text.innerText = "You attempt to dodge the attack from the " + monsters[fighting].name + ".";
   
-  if (Math.random() < 0.5) {
+  if (Math.random() < GAME_CONSTANTS.DODGE_SUCCESS_RATE) {
     text.innerText += " You successfully avoided all damage!";
   } else {
     const partialDamage = Math.floor(getMonsterAttackValue(monsters[fighting].level) / 2);
@@ -274,15 +322,13 @@ function dodge() {
 }
 
 function defeatMonster() {
-  const MAX_GOLD = 9999;
-  const MAX_XP = 999;
   const goldReward = Math.floor(monsters[fighting].level * 8 + Math.random() * 10);
   const xpReward = monsters[fighting].level * 2;
   
   gold += goldReward;
-  gold = Math.min(gold, MAX_GOLD);
+  gold = Math.min(gold, GAME_CONSTANTS.MAX_GOLD);
   xp += xpReward;
-  xp = Math.min(xp, MAX_XP);
+  xp = Math.min(xp, GAME_CONSTANTS.MAX_XP);
   
   goldText.innerText = gold;
   xpText.innerText = xp;
@@ -304,14 +350,12 @@ function winGame() {
 }
 
 function restart(){
-  xp = 0;
-  health = 100;
-  gold = 50;
+  xp = GAME_CONSTANTS.INITIAL_XP;
+  health = GAME_CONSTANTS.INITIAL_HEALTH;
+  gold = GAME_CONSTANTS.INITIAL_GOLD;
   currentWeaponIndex = 0;
   inventory = ["stick"];
-  goldText.innerText = gold;
-  healthText.innerText = health;
-  xpText.innerText = xp;
+  updatePlayerStats();
   saveGame();
   goTown();
 }
@@ -333,25 +377,20 @@ function loadGame() {
   if (savedData) {
     try {
       const gameData = JSON.parse(savedData);
-      xp = gameData.xp || 0;
-      health = gameData.health || 100;
-      gold = gameData.gold || 50;
+      xp = gameData.xp || GAME_CONSTANTS.INITIAL_XP;
+      health = gameData.health || GAME_CONSTANTS.INITIAL_HEALTH;
+      gold = gameData.gold || GAME_CONSTANTS.INITIAL_GOLD;
       currentWeaponIndex = gameData.currentWeaponIndex || 0;
       inventory = gameData.inventory || ["stick"];
       
       // Boundary checks for loaded data
-      const MAX_HEALTH = 200;
-      const MAX_GOLD = 9999;
-      const MAX_XP = 999;
-      health = Math.min(Math.max(1, health), MAX_HEALTH);
-      gold = Math.min(Math.max(0, gold), MAX_GOLD);
-      xp = Math.min(Math.max(0, xp), MAX_XP);
+      health = Math.min(Math.max(1, health), GAME_CONSTANTS.MAX_HEALTH);
+      gold = Math.min(Math.max(0, gold), GAME_CONSTANTS.MAX_GOLD);
+      xp = Math.min(Math.max(0, xp), GAME_CONSTANTS.MAX_XP);
       currentWeaponIndex = Math.min(Math.max(0, currentWeaponIndex), weapon.length - 1);
       
       // Update UI
-      goldText.innerText = gold;
-      healthText.innerText = health;
-      xpText.innerText = xp;
+      updatePlayerStats();
       
       text.innerText = `Game loaded! Last saved: ${gameData.savedAt || 'Unknown time'}`;
     } catch (error) {
@@ -377,15 +416,14 @@ function pick(guess){
   text.innerText = `You picked ${guess}. The random number is: ${randomNumber}\n`;
   
   if(randomNumber === guess){
-    text.innerText += "🎉 Right! You win 20 gold! Lucky guess!";
-    const MAX_GOLD = 9999;
-    gold += 20;
-    gold = Math.min(gold, MAX_GOLD);
+    text.innerText += `🎉 Right! You win ${GAME_CONSTANTS.EASTER_EGG_GOLD_REWARD} gold! Lucky guess!`;
+    gold += GAME_CONSTANTS.EASTER_EGG_GOLD_REWARD;
+    gold = Math.min(gold, GAME_CONSTANTS.MAX_GOLD);
     goldText.innerText = gold;
     saveGame();
   } else {
-    text.innerText += `💔 Wrong! The odds were against you (${guess} vs ${randomNumber}). You lose 10 health!`;
-    health -= 10;
+    text.innerText += `💔 Wrong! The odds were against you (${guess} vs ${randomNumber}). You lose ${GAME_CONSTANTS.EASTER_EGG_HEALTH_PENALTY} health!`;
+    health -= GAME_CONSTANTS.EASTER_EGG_HEALTH_PENALTY;
     health = Math.max(0, health);
     healthText.innerText = health;
     if (health <= 0) {
