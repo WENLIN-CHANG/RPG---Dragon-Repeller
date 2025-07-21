@@ -217,8 +217,12 @@ function attack() {
   }
   
   if (Math.random() <= .1 && inventory.length !== 1) {
-    text.innerText += " Your " + inventory.pop() + " breaks.";
-    currentWeaponIndex--;
+    let brokenWeapon = inventory[currentWeaponIndex];
+    text.innerText += " Your " + brokenWeapon + " breaks.";
+    inventory.splice(currentWeaponIndex, 1);
+    if (currentWeaponIndex >= inventory.length) {
+      currentWeaponIndex = inventory.length - 1;
+    }
   }
 }
 
