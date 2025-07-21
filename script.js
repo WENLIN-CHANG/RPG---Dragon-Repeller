@@ -18,9 +18,9 @@ const monsterHealthText = document.querySelector("#monsterHealth");
 
 const weapon = [
   {name: "stick",power: 5},
-  {name: "dagger",power: 30},
-  {name: "claw hammer",power: 50},
-  {name: "sword",power: 100}
+  {name: "dagger",power: 12},
+  {name: "claw_hammer",power: 25},
+  {name: "sword",power: 50}
 ]
 
 const monsters = [
@@ -30,14 +30,14 @@ const monsters = [
     health: 15
   },
   {
-    name: "fanged beast",
-    level: 8,
-    health: 60
+    name: "fanged_beast",
+    level: 5,
+    health: 35
   },
   {
     name: "dragon",
-    level: 20,
-    health: 300
+    level: 10,
+    health: 100
   }
 ];
 
@@ -263,9 +263,11 @@ function dodge() {
 function defeatMonster() {
   const MAX_GOLD = 9999;
   const MAX_XP = 999;
-  gold += Math.floor(monsters[fighting].level * 6.7);
+  const goldReward = Math.floor(monsters[fighting].level * 8 + Math.random() * 10);
+  const xpReward = monsters[fighting].level * 2;
+  gold += goldReward;
   gold = Math.min(gold, MAX_GOLD);
-  xp += monsters[fighting].level;
+  xp += xpReward;
   xp = Math.min(xp, MAX_XP);
   goldText.innerText = gold;
   xpText.innerText = xp;
