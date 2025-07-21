@@ -97,6 +97,9 @@ button1.onclick = goStore;
 button2.onclick = goCave;
 button3.onclick = fightDragon;
 
+// Load game on startup
+loadGame();
+
 function update(location) {
   monsterStats.style.display = "none";
   button1.innerText = location["button text"][0];
@@ -130,6 +133,7 @@ function buyHealth() {
       health = Math.min(health + 10, MAX_HEALTH);
       goldText.innerText = gold;
       healthText.innerText = health;
+      saveGame();
     }
   }else{
     text.innerText = "You do not have enough gold to buy health.";
@@ -147,6 +151,7 @@ function buyWeapon() {
       text.innerText = "You now have a " + newWeapon + ".";
       inventory.push(newWeapon);
       text.innerText += " In your inventory you have: " + inventory;
+      saveGame();
     } else {
       text.innerText = "You do not have enough gold to buy a weapon.";
     }
@@ -168,6 +173,7 @@ function sellWeapon() {
     let currentWeapon = inventory.pop();
     text.innerText = "You sold a " + currentWeapon + ".";
     text.innerText += " In your inventory you have: " + inventory;
+    saveGame();
   } else {
     text.innerText = "Don't sell your only weapon!";
   }
@@ -200,12 +206,16 @@ function attack() {
   text.innerText = "You attack the " + monsters[fighting].name + " with your " + weapon[currentWeaponIndex].name + ".";
   
   if (isMonsterHit()) {
-    monsterHealth -= weapon[currentWeaponIndex].power + Math.floor(Math.random() * xp) + 1;
+    const baseDamage = weapon[currentWeaponIndex].power;
+    const bonusDamage = Math.floor(Math.random() * xp) + 1;
+    const totalDamage = baseDamage + bonusDamage;
+    monsterHealth -= totalDamage;
+    text.innerText += ` You deal ${totalDamage} damage! (${baseDamage} + ${bonusDamage} bonus)`;
   } else {
     text.innerText += " You miss.";
   }
   
-  monsterHealthText.innerText = monsterHealth;
+  monsterHealthText.innerText = Math.max(0, monsterHealth);
   
   if (monsterHealth <= 0) {
     if (fighting === 2) {
@@ -216,8 +226,9 @@ function attack() {
     return;
   }
   
-  text.innerText += " The " + monsters[fighting].name + " attacks you.";
-  health -= getMonsterAttackValue(monsters[fighting].level);
+  const monsterDamage = getMonsterAttackValue(monsters[fighting].level);
+  text.innerText += ` The ${monsters[fighting].name} attacks you for ${monsterDamage} damage.`;
+  health -= monsterDamage;
   health = Math.max(0, health);
   healthText.innerText = health;
   
@@ -232,6 +243,7 @@ function attack() {
     inventory.splice(currentWeaponIndex, 1);
     currentWeaponIndex = Math.min(currentWeaponIndex, inventory.length - 1);
     currentWeaponIndex = Math.max(0, currentWeaponIndex);
+    saveGame();
   }
 }
 
@@ -250,8 +262,9 @@ function dodge() {
   if (Math.random() < 0.5) {
     text.innerText += " You successfully avoided all damage!";
   } else {
-    text.innerText += " You couldn't dodge completely.";
-    health -= Math.floor(getMonsterAttackValue(monsters[fighting].level) / 2);
+    const partialDamage = Math.floor(getMonsterAttackValue(monsters[fighting].level) / 2);
+    text.innerText += ` You couldn't dodge completely and take ${partialDamage} damage.`;
+    health -= partialDamage;
     health = Math.max(0, health);
     healthText.innerText = health;
     if (health <= 0) {
@@ -265,12 +278,20 @@ function defeatMonster() {
   const MAX_XP = 999;
   const goldReward = Math.floor(monsters[fighting].level * 8 + Math.random() * 10);
   const xpReward = monsters[fighting].level * 2;
+  
   gold += goldReward;
   gold = Math.min(gold, MAX_GOLD);
   xp += xpReward;
   xp = Math.min(xp, MAX_XP);
+  
   goldText.innerText = gold;
   xpText.innerText = xp;
+  
+  // Store rewards for display
+  const currentLocation = locations[4];
+  currentLocation.text = `The ${monsters[fighting].name} screams "Arg!" as it dies. You gain ${xpReward} experience points and find ${goldReward} gold!`;
+  
+  saveGame();
   update(locations[4]);
 }
 
@@ -291,7 +312,52 @@ function restart(){
   goldText.innerText = gold;
   healthText.innerText = health;
   xpText.innerText = xp;
+  saveGame();
   goTown();
+}
+
+function saveGame() {
+  const gameData = {
+    xp: xp,
+    health: health,
+    gold: gold,
+    currentWeaponIndex: currentWeaponIndex,
+    inventory: inventory,
+    savedAt: new Date().toLocaleString()
+  };
+  localStorage.setItem('dragonRepellerSave', JSON.stringify(gameData));
+}
+
+function loadGame() {
+  const savedData = localStorage.getItem('dragonRepellerSave');
+  if (savedData) {
+    try {
+      const gameData = JSON.parse(savedData);
+      xp = gameData.xp || 0;
+      health = gameData.health || 100;
+      gold = gameData.gold || 50;
+      currentWeaponIndex = gameData.currentWeaponIndex || 0;
+      inventory = gameData.inventory || ["stick"];
+      
+      // Boundary checks for loaded data
+      const MAX_HEALTH = 200;
+      const MAX_GOLD = 9999;
+      const MAX_XP = 999;
+      health = Math.min(Math.max(1, health), MAX_HEALTH);
+      gold = Math.min(Math.max(0, gold), MAX_GOLD);
+      xp = Math.min(Math.max(0, xp), MAX_XP);
+      currentWeaponIndex = Math.min(Math.max(0, currentWeaponIndex), weapon.length - 1);
+      
+      // Update UI
+      goldText.innerText = gold;
+      healthText.innerText = health;
+      xpText.innerText = xp;
+      
+      text.innerText = `Game loaded! Last saved: ${gameData.savedAt || 'Unknown time'}`;
+    } catch (error) {
+      console.log('Failed to load save data, starting fresh game');
+    }
+  }
 }
 
 function easterEgg(){
@@ -308,21 +374,24 @@ function pickEight() {
 
 function pick(guess){
   const randomNumber = Math.floor(Math.random() * 11);
-  text.innerText = "You picked " + guess + ". The random number is: " + randomNumber + "\n";
+  text.innerText = `You picked ${guess}. The random number is: ${randomNumber}\n`;
   
   if(randomNumber === guess){
-    text.innerText += "Right! You win 20 gold!";
+    text.innerText += "🎉 Right! You win 20 gold! Lucky guess!";
     const MAX_GOLD = 9999;
     gold += 20;
     gold = Math.min(gold, MAX_GOLD);
     goldText.innerText = gold;
+    saveGame();
   } else {
-    text.innerText += "Wrong! You lose 10 health!";
+    text.innerText += `💔 Wrong! The odds were against you (${guess} vs ${randomNumber}). You lose 10 health!`;
     health -= 10;
     health = Math.max(0, health);
     healthText.innerText = health;
     if (health <= 0) {
       lose();
+    } else {
+      saveGame();
     }
   }
 }
