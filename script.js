@@ -121,11 +121,16 @@ function goCave() {
 }
 
 function buyHealth() {
+  const MAX_HEALTH = 200;
   if(gold >= 10){
-    gold -= 10;
-    health += 10;
-    goldText.innerText = gold;
-    healthText.innerText = health;
+    if(health >= MAX_HEALTH){
+      text.innerText = "You already have maximum health!";
+    }else{
+      gold -= 10;
+      health = Math.min(health + 10, MAX_HEALTH);
+      goldText.innerText = gold;
+      healthText.innerText = health;
+    }
   }else{
     text.innerText = "You do not have enough gold to buy health.";
   }
@@ -136,6 +141,7 @@ function buyWeapon() {
     if (gold >= 30) {
       gold -= 30;
       currentWeaponIndex++;
+      currentWeaponIndex = Math.min(currentWeaponIndex, weapon.length - 1);
       goldText.innerText = gold;
       let newWeapon = weapon[currentWeaponIndex].name;
       text.innerText = "You now have a " + newWeapon + ".";
@@ -153,9 +159,12 @@ function buyWeapon() {
 
 function sellWeapon() {
   if (inventory.length > 1) {
+    const MAX_GOLD = 9999;
     gold += 15;
+    gold = Math.min(gold, MAX_GOLD);
     goldText.innerText = gold;
     currentWeaponIndex--;
+    currentWeaponIndex = Math.max(0, currentWeaponIndex);
     let currentWeapon = inventory.pop();
     text.innerText = "You sold a " + currentWeapon + ".";
     text.innerText += " In your inventory you have: " + inventory;
@@ -209,6 +218,7 @@ function attack() {
   
   text.innerText += " The " + monsters[fighting].name + " attacks you.";
   health -= getMonsterAttackValue(monsters[fighting].level);
+  health = Math.max(0, health);
   healthText.innerText = health;
   
   if (health <= 0) {
@@ -216,13 +226,12 @@ function attack() {
     return;
   }
   
-  if (Math.random() <= .1 && inventory.length !== 1) {
+  if (Math.random() <= .1 && inventory.length !== 1 && currentWeaponIndex < inventory.length) {
     let brokenWeapon = inventory[currentWeaponIndex];
     text.innerText += " Your " + brokenWeapon + " breaks.";
     inventory.splice(currentWeaponIndex, 1);
-    if (currentWeaponIndex >= inventory.length) {
-      currentWeaponIndex = inventory.length - 1;
-    }
+    currentWeaponIndex = Math.min(currentWeaponIndex, inventory.length - 1);
+    currentWeaponIndex = Math.max(0, currentWeaponIndex);
   }
 }
 
@@ -243,6 +252,7 @@ function dodge() {
   } else {
     text.innerText += " You couldn't dodge completely.";
     health -= Math.floor(getMonsterAttackValue(monsters[fighting].level) / 2);
+    health = Math.max(0, health);
     healthText.innerText = health;
     if (health <= 0) {
       lose();
@@ -251,8 +261,12 @@ function dodge() {
 }
 
 function defeatMonster() {
+  const MAX_GOLD = 9999;
+  const MAX_XP = 999;
   gold += Math.floor(monsters[fighting].level * 6.7);
+  gold = Math.min(gold, MAX_GOLD);
   xp += monsters[fighting].level;
+  xp = Math.min(xp, MAX_XP);
   goldText.innerText = gold;
   xpText.innerText = xp;
   update(locations[4]);
@@ -296,11 +310,14 @@ function pick(guess){
   
   if(randomNumber === guess){
     text.innerText += "Right! You win 20 gold!";
+    const MAX_GOLD = 9999;
     gold += 20;
+    gold = Math.min(gold, MAX_GOLD);
     goldText.innerText = gold;
   } else {
     text.innerText += "Wrong! You lose 10 health!";
     health -= 10;
+    health = Math.max(0, health);
     healthText.innerText = health;
     if (health <= 0) {
       lose();
