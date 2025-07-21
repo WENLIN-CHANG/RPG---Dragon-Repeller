@@ -132,12 +132,12 @@ function buyHealth() {
 }
 
 function buyWeapon() {
-  if (currentWeaponIndex < weapons.length - 1) {
+  if (currentWeaponIndex < weapon.length - 1) {
     if (gold >= 30) {
       gold -= 30;
       currentWeaponIndex++;
       goldText.innerText = gold;
-      let newWeapon = weapons[currentWeaponIndex].name;
+      let newWeapon = weapon[currentWeaponIndex].name;
       text.innerText = "You now have a " + newWeapon + ".";
       inventory.push(newWeapon);
       text.innerText += " In your inventory you have: " + inventory;
@@ -188,10 +188,10 @@ function goFight(){
 
 function attack() {
   text.innerText = "The " + monsters[fighting].name + " attacks.";
-  text.innerText += " You attack it with your " + weapons[currentWeaponIndex].name + ".";
+  text.innerText += " You attack it with your " + weapon[currentWeaponIndex].name + ".";
   health -= getMonsterAttackValue(monsters[fighting].level);
   if (isMonsterHit()) {
-    monsterHealth -= weapons[currentWeaponIndex].power + Math.floor(Math.random() * xp) + 1;    
+    monsterHealth -= weapon[currentWeaponIndex].power + Math.floor(Math.random() * xp) + 1;    
   } else {
     text.innerText += " You miss.";
   }
