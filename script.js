@@ -33,11 +33,19 @@ function showMessage(message) {
 }
 
 function addGold(amount) {
+  if (amount < 0) {
+    console.warn('addGold: 嘗試添加負數金幣，忽略此操作');
+    return;
+  }
   gold += amount;
   gold = Math.min(gold, GAME_CONSTANTS.MAX_GOLD);
 }
 
 function addXP(amount) {
+  if (amount < 0) {
+    console.warn('addXP: 嘗試添加負數經驗值，忽略此操作');
+    return;
+  }
   xp += amount;
   xp = Math.min(xp, GAME_CONSTANTS.MAX_XP);
 }
